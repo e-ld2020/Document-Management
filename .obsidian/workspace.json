@@ -33,14 +33,16 @@
             "id": "b2a5258af3e39318",
             "type": "leaf",
             "state": {
-              "type": "markdown",
+              "type": "kanban",
               "state": {
-                "file": "テスト連動企画.md",
-                "mode": "source",
-                "source": false
+                "file": "無題のカンバン 2.md",
+                "kanbanViewState": {
+                  "kanban-plugin": "board",
+                  "list-collapse": []
+                }
               },
-              "icon": "lucide-file",
-              "title": "テスト連動企画"
+              "icon": "lucide-trello",
+              "title": "無題のカンバン 2"
             }
           }
         ]
@@ -208,15 +210,18 @@
   },
   "active": "b2a5258af3e39318",
   "lastOpenFiles": [
+    "無題のカンバン 1.md",
+    "無題のカンバン 2.md",
+    "テスト連動企画.md",
+    "無題のファイル 1.canvas",
+    "無題のファイル 1.base",
+    "無題のファイル.base",
+    "無題のファイル.canvas",
+    "無題のファイル 3.canvas",
     "99_System/Templates/3分チーム用テンプレート.md",
     "00_進行管理ボード.md",
-    "テスト連動企画.md",
-    "無題のファイル 3.canvas",
     "無題のファイル 2.canvas",
-    "無題のファイル 1.base",
-    "無題のカンバン 1.md",
     "無題のカンバン.md",
-    "無題のファイル.base",
     "Kanban.md",
     "03_3分動画/00020 情報ハイウェイ(アメージングジャパン)/test11月20日_00020 情報ハイウェイ(アメージングジャパン)記事.md",
     "99_System/Templates/YouTube台本テンプレート.md",
@@ -224,8 +229,6 @@
     "99_System",
     "2025-11-20.md",
     "03_3分動画/00_TEMPLATE_複製用.md",
-    "無題のファイル 1.canvas",
-    "無題のファイル.canvas",
     "03_3分動画/00013 国民の本音/test11月20日_00013 国民の本音記事.md"
   ]
 }

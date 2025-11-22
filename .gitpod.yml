@@ -1,0 +1,16 @@
+tasks:
+  - name: Setup
+    command: echo "執筆環境の準備が完了しました！"
+
+vscode:
+  extensions:
+    - yzhang.markdown-all-in-one  # 太字やプレビューなどの支援
+    - mushan.vscode-paste-image   # 画像をCtrl+Vで貼れる神ツール
+    - shd101wyy.markdown-preview-enhanced # 高機能プレビュー
+
+# 画像貼り付けの設定（画像を assets フォルダにまとめる設定）
+# これがないと記事と同じ場所に画像が散らかるので整理します
+settings:
+  pasteImage.path: "${currentFileDir}/assets"
+  pasteImage.showFilePathConfirmInputBox: true
+  pasteImage.namePrefix: "${currentFileNameWithoutExt}_"
