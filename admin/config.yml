@@ -1,5 +1,6 @@
 backend:
-  name: git-gateway
+  name: github
+  repo: e-ld2020/Document-Management
   branch: main
 
 # 画像の保存先設定
