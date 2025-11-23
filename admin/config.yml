@@ -3,20 +3,17 @@ backend:
   repo: e-ld2020/Document-Management
   branch: main
 
-# 画像の保存先設定
 media_folder: "assets/images"
 public_folder: "/assets/images"
-
-# 日本語化
 locale: "ja"
 
-# 左側メニューの定義
 collections:
   # --- 00 ネタ帳 ---
   - name: "ideas"
     label: "00_ネタ帳"
     folder: "00_＊＊ネタ帳＊＊"
     create: true
+    nested: { depth: 4 }
     slug: "{{year}}-{{month}}-{{day}}_{{title}}"
     fields:
       - {label: "タイトル", name: "title", widget: "string"}
@@ -29,6 +26,7 @@ collections:
     label: "01_業務連絡"
     folder: "01_＊⚠️業務連絡＊"
     create: true
+    nested: { depth: 4 }
     slug: "{{year}}-{{month}}-{{day}}_{{title}}"
     fields:
       - {label: "件名", name: "title", widget: "string"}
@@ -40,6 +38,7 @@ collections:
     label: "02_プロンプト・ツール"
     folder: "02_＊✍️プロンプト・ツール"
     create: true
+    nested: { depth: 4 }
     slug: "{{title}}"
     fields:
       - {label: "ツール名", name: "title", widget: "string"}
@@ -50,6 +49,7 @@ collections:
     label: "03_3分動画"
     folder: "03_3分動画"
     create: true
+    nested: { depth: 4 }
     slug: "{{year}}-{{month}}-{{day}}_{{title}}"
     fields:
       - {label: "タイトル", name: "title", widget: "string"}
@@ -67,6 +67,7 @@ collections:
     label: "04_8分動画"
     folder: "04_8分動画"
     create: true
+    nested: { depth: 4 }
     slug: "{{year}}-{{month}}-{{day}}_{{title}}"
     fields:
       - {label: "タイトル", name: "title", widget: "string"}
@@ -80,6 +81,7 @@ collections:
     label: "05_AI楽曲"
     folder: "05_AI楽曲"
     create: true
+    nested: { depth: 4 }
     fields:
       - {label: "曲名", name: "title", widget: "string"}
       - {label: "詳細", name: "body", widget: "markdown"}
@@ -89,6 +91,7 @@ collections:
     label: "06_ショート動画"
     folder: "06_ショート動画"
     create: true
+    nested: { depth: 4 }
     fields:
       - {label: "タイトル", name: "title", widget: "string"}
       - {label: "台本・構成", name: "body", widget: "markdown"}
@@ -98,6 +101,7 @@ collections:
     label: "07_不動産撮影"
     folder: "07_不動産撮影"
     create: true
+    nested: { depth: 4 }
     fields:
       - {label: "案件名", name: "title", widget: "string"}
       - {label: "詳細", name: "body", widget: "markdown"}
@@ -107,6 +111,7 @@ collections:
     label: "08_偉人系"
     folder: "08_偉人系"
     create: true
+    nested: { depth: 4 }
     fields:
       - {label: "偉人名", name: "title", widget: "string"}
       - {label: "記事", name: "body", widget: "markdown"}
@@ -116,6 +121,7 @@ collections:
     label: "09_開発チーム用"
     folder: "09_開発チーム用"
     create: true
+    nested: { depth: 4 }
     fields:
       - {label: "件名", name: "title", widget: "string"}
       - {label: "内容", name: "body", widget: "markdown"}
