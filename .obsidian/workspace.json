@@ -6,6 +6,7 @@
       {
         "id": "5968e7177c4c177e",
         "type": "tabs",
+        "dimension": 80.11928429423459,
         "children": [
           {
             "id": "3216a5f49b0bb525",
@@ -28,6 +29,7 @@
       {
         "id": "1eaeee047f716ac1",
         "type": "tabs",
+        "dimension": 19.880715705765407,
         "children": [
           {
             "id": "b2a5258af3e39318",
@@ -210,6 +212,11 @@
   },
   "active": "b2a5258af3e39318",
   "lastOpenFiles": [
+    "assets/images",
+    "assets",
+    "admin/index.html",
+    "admin/config.yml",
+    "admin",
     "無題のカンバン 1.md",
     "無題のカンバン 2.md",
     "テスト連動企画.md",

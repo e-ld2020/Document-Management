@@ -1,0 +1,35 @@
+backend:
+  name: git-gateway
+  branch: main
+
+# 画像の保存先設定
+media_folder: "assets/images"
+public_folder: "/assets/images"
+
+# 日本語化
+locale: "ja"
+
+# 記事のコレクション（フォルダごとの設定）
+collections:
+  - name: "3min_video"
+    label: "3分動画"
+    folder: "03_3分動画"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}_{{title}}"
+    editor:
+      preview: false
+    fields:
+      - {label: "タイトル", name: "title", widget: "string"}
+      - {label: "担当者", name: "author", widget: "string", required: false}
+      - {label: "更新日", name: "date", widget: "datetime", format: "YYYY-MM-DD", default: ""}
+      - {label: "ステータス", name: "status", widget: "select", options: ["ネタ出し", "構成作成中", "台本チェック", "完了"], default: "ネタ出し"}
+      
+      # ここからテンプレートの内容
+      - {label: "完成動画URL", name: "video_url", widget: "string", required: false}
+      - {label: "辞書登録して欲しい単語", name: "dict_words", widget: "text", required: false}
+      - {label: "ネタ元URL", name: "source_url", widget: "string", required: false}
+      
+      # ここが本文エディタ（画像ドラッグ＆ドロップ対応）
+      - {label: "記事本文", name: "body", widget: "markdown"}
+      
+      - {label: "サムネイル画像", name: "thumbnail", widget: "image", required: false}
