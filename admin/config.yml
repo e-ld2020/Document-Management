@@ -10,27 +10,112 @@ public_folder: "/assets/images"
 # 日本語化
 locale: "ja"
 
-# 記事のコレクション（フォルダごとの設定）
+# 左側メニューの定義
 collections:
+  # --- 00 ネタ帳 ---
+  - name: "ideas"
+    label: "00_ネタ帳"
+    folder: "00_＊＊ネタ帳＊＊"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}_{{title}}"
+    fields:
+      - {label: "タイトル", name: "title", widget: "string"}
+      - {label: "担当者", name: "author", widget: "string", required: false}
+      - {label: "ステータス", name: "status", widget: "select", options: ["ネタ出し", "確認中", "完了"], default: "ネタ出し"}
+      - {label: "メモ・本文", name: "body", widget: "markdown"}
+
+  # --- 01 業務連絡 ---
+  - name: "news"
+    label: "01_業務連絡"
+    folder: "01_＊⚠️業務連絡＊"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}_{{title}}"
+    fields:
+      - {label: "件名", name: "title", widget: "string"}
+      - {label: "重要度", name: "priority", widget: "select", options: ["低", "中", "高"], default: "中"}
+      - {label: "内容", name: "body", widget: "markdown"}
+
+  # --- 02 プロンプト・ツール ---
+  - name: "tools"
+    label: "02_プロンプト・ツール"
+    folder: "02_＊✍️プロンプト・ツール"
+    create: true
+    slug: "{{title}}"
+    fields:
+      - {label: "ツール名", name: "title", widget: "string"}
+      - {label: "解説", name: "body", widget: "markdown"}
+
+  # --- 03 3分動画 ---
   - name: "3min_video"
-    label: "3分動画"
+    label: "03_3分動画"
     folder: "03_3分動画"
     create: true
     slug: "{{year}}-{{month}}-{{day}}_{{title}}"
-    editor:
-      preview: false
     fields:
       - {label: "タイトル", name: "title", widget: "string"}
       - {label: "担当者", name: "author", widget: "string", required: false}
       - {label: "更新日", name: "date", widget: "datetime", format: "YYYY-MM-DD", default: ""}
       - {label: "ステータス", name: "status", widget: "select", options: ["ネタ出し", "構成作成中", "台本チェック", "完了"], default: "ネタ出し"}
-      
-      # ここからテンプレートの内容
       - {label: "完成動画URL", name: "video_url", widget: "string", required: false}
-      - {label: "辞書登録して欲しい単語", name: "dict_words", widget: "text", required: false}
+      - {label: "辞書登録単語", name: "dict_words", widget: "text", required: false}
       - {label: "ネタ元URL", name: "source_url", widget: "string", required: false}
-      
-      # ここが本文エディタ（画像ドラッグ＆ドロップ対応）
       - {label: "記事本文", name: "body", widget: "markdown"}
-      
-      - {label: "サムネイル画像", name: "thumbnail", widget: "image", required: false}
+      - {label: "サムネイル", name: "thumbnail", widget: "image", required: false}
+
+  # --- 04 8分動画 ---
+  - name: "8min_video"
+    label: "04_8分動画"
+    folder: "04_8分動画"
+    create: true
+    slug: "{{year}}-{{month}}-{{day}}_{{title}}"
+    fields:
+      - {label: "タイトル", name: "title", widget: "string"}
+      - {label: "担当者", name: "author", widget: "string", required: false}
+      - {label: "ステータス", name: "status", widget: "select", options: ["ネタ出し", "構成作成中", "台本チェック", "完了"], default: "ネタ出し"}
+      - {label: "記事本文", name: "body", widget: "markdown"}
+      - {label: "サムネイル", name: "thumbnail", widget: "image", required: false}
+
+  # --- 05 AI楽曲 ---
+  - name: "ai_music"
+    label: "05_AI楽曲"
+    folder: "05_AI楽曲"
+    create: true
+    fields:
+      - {label: "曲名", name: "title", widget: "string"}
+      - {label: "詳細", name: "body", widget: "markdown"}
+
+  # --- 06 ショート動画 ---
+  - name: "shorts"
+    label: "06_ショート動画"
+    folder: "06_ショート動画"
+    create: true
+    fields:
+      - {label: "タイトル", name: "title", widget: "string"}
+      - {label: "台本・構成", name: "body", widget: "markdown"}
+
+  # --- 07 不動産撮影 ---
+  - name: "real_estate"
+    label: "07_不動産撮影"
+    folder: "07_不動産撮影"
+    create: true
+    fields:
+      - {label: "案件名", name: "title", widget: "string"}
+      - {label: "詳細", name: "body", widget: "markdown"}
+
+  # --- 08 偉人系 ---
+  - name: "great_people"
+    label: "08_偉人系"
+    folder: "08_偉人系"
+    create: true
+    fields:
+      - {label: "偉人名", name: "title", widget: "string"}
+      - {label: "記事", name: "body", widget: "markdown"}
+
+  # --- 09 開発チーム ---
+  - name: "dev_team"
+    label: "09_開発チーム用"
+    folder: "09_開発チーム用"
+    create: true
+    fields:
+      - {label: "件名", name: "title", widget: "string"}
+      - {label: "内容", name: "body", widget: "markdown"}

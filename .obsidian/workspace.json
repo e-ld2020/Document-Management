@@ -14,14 +14,14 @@
             "state": {
               "type": "kanban",
               "state": {
-                "file": "00_進行管理ボード.md",
+                "file": "無題のカンバン 3.md",
                 "kanbanViewState": {
                   "kanban-plugin": "board",
                   "list-collapse": []
                 }
               },
               "icon": "lucide-trello",
-              "title": "00_進行管理ボード"
+              "title": "無題のカンバン 3"
             }
           }
         ]
@@ -212,6 +212,11 @@
   },
   "active": "3216a5f49b0bb525",
   "lastOpenFiles": [
+    "2025-11-23.md",
+    "無題のカンバン 3.md",
+    "無題のファイル.canvas",
+    "00_進行管理ボード.md",
+    "03_3分動画/00010 3分超速報/11月21日 1本目",
     "無題のカンバン 2.md",
     "assets/images",
     "assets",
@@ -223,10 +228,8 @@
     "無題のファイル 1.canvas",
     "無題のファイル 1.base",
     "無題のファイル.base",
-    "無題のファイル.canvas",
     "無題のファイル 3.canvas",
     "99_System/Templates/3分チーム用テンプレート.md",
-    "00_進行管理ボード.md",
     "無題のファイル 2.canvas",
     "無題のカンバン.md",
     "Kanban.md",
