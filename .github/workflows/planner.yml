@@ -17,7 +17,7 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v4
 
-      - name: 自動修復とタスク作成
+      - name: 自動修復(所有者)とタスク作成
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
@@ -35,31 +35,46 @@ jobs:
             --tenant "$AZURE_TENANT_ID" \
             --allow-no-subscriptions > /dev/null
 
-          # 2. 【自己修復】ロボット自身をチームに強制加入させる
+          # 2. 【自己修復】ロボットを「所有者」として強制加入させる
+          # (メンバー追加は禁止されているが、所有者追加は許可されているため)
           echo "Checking Service Principal ID..."
           SP_OBJECT_ID=$(az ad sp show --id "$AZURE_CLIENT_ID" --query id -o tsv)
           
-          echo "Adding App ($SP_OBJECT_ID) to Group ($GROUP_ID)..."
-          # 既にメンバーでもエラーにならないように || true をつける
-          az ad group member add --group "$GROUP_ID" --member-id "$SP_OBJECT_ID" || true
-          echo "✅ Member add command executed."
+          echo "Adding App ($SP_OBJECT_ID) as OWNER to Group ($GROUP_ID)..."
+          az ad group owner add --group "$GROUP_ID" --owner-object-id "$SP_OBJECT_ID" || true
+          echo "✅ Owner add command executed."
 
-          # 反映待ち（念のため10秒待機）
+          # 反映待ち（10秒）
           sleep 10
 
           # 3. トークン取得
           TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
 
-          # 4. バケット一覧を取得
+          # 4. バケット一覧を取得（診断機能付き）
           echo "Searching bucket ID for: $TARGET_BUCKET_NAME"
+          
           RESPONSE=$(curl -s -X GET -H "Authorization: Bearer $TOKEN" \
             "https://graph.microsoft.com/v1.0/planner/plans/$PLAN_ID/buckets")
-          
+
+          # ▼▼▼ 診断ログ出力 ▼▼▼
+          echo "----------------------------------------"
+          echo "【Microsoftからの返答】"
+          echo "$RESPONSE"
+          echo "----------------------------------------"
+          # ▲▲▲▲▲▲
+
+          # エラー判定
+          if [[ "$RESPONSE" == *"error"* ]]; then
+             echo "❌ APIエラーが発生しました。上の【Microsoftからの返答】を確認してください。"
+             exit 1
+          fi
+
           # バケットID検索
           BUCKET_ID=$(echo $RESPONSE | jq -r --arg NAME "$TARGET_BUCKET_NAME" '.value[] | select(.name==$NAME) | .id')
 
           if [ -z "$BUCKET_ID" ] || [ "$BUCKET_ID" == "null" ]; then
-            echo "❌ バケットが見つかりません。以下の一覧から名前を確認してください:"
+            echo "❌ バケットが見つかりません。Plannerの列名が一字一句合っているか確認してください。"
+            echo "取得できたバケット一覧: "
             echo $RESPONSE | jq -r '.value[].name'
             exit 1
           fi
