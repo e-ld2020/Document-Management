@@ -1,22 +1,76 @@
-name: List Buckets
+name: Planner Task Automation
 
-on: workflow_dispatch
+on:
+  push:
+    paths:
+      - '**/*.md'
+      - '**/*.txt'
+  workflow_dispatch:
 
 jobs:
-  check-buckets:
+  create-task:
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
     steps:
-      - name: バケット一覧を表示
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: タスク作成実行
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          # ▼▼▼ 確定したID（ここが最強の答えです） ▼▼▼
           PLAN_ID: 'E4IcGEnHOUalieUARPGTcvoAHqmv'
+          BUCKET_ID: '19ou2WFwS02edWCwTqTA-PoAHhRZ'
         run: |
+          # 1. Azureにログイン
+          echo "Logging into Azure..."
           az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" -t "$AZURE_TENANT_ID" --allow-no-subscriptions > /dev/null
-          TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
           
-          echo "▼▼▼ バケット一覧 ▼▼▼"
-          curl -s -X GET -H "Authorization: Bearer $TOKEN" \
-            "https://graph.microsoft.com/v1.0/planner/plans/$PLAN_ID/buckets" | jq -r '.value[] | "\(.name) : \(.id)"'
-          echo "▲▲▲▲▲▲"
+          # 2. トークン取得
+          TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
+
+          # 3. タスク名を取得（コミットメッセージ）
+          TASK_TITLE="${{ github.event.head_commit.message }}"
+          if [ -z "$TASK_TITLE" ]; then TASK_TITLE="自動タスク"; fi
+          echo "Task Title: $TASK_TITLE"
+
+          # 4. タスクを作成（ID指定で一発作成）
+          echo "Creating task in Bucket: $BUCKET_ID"
+          
+          TASK_RES=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d "{
+                  \"planId\": \"$PLAN_ID\",
+                  \"bucketId\": \"$BUCKET_ID\",
+                  \"title\": \"$TASK_TITLE\"
+                }" \
+            "https://graph.microsoft.com/v1.0/planner/tasks")
+          
+          # 結果確認
+          TASK_ID=$(echo $TASK_RES | jq -r '.id')
+          
+          if [ -z "$TASK_ID" ] || [ "$TASK_ID" == "null" ]; then
+             echo "❌ タスク作成に失敗しました。"
+             echo "Response: $TASK_RES"
+             exit 1
+          fi
+          echo "✅ Created Task ID: $TASK_ID"
+
+          # 5. チェックリスト追加
+          ETAG=$(echo $TASK_RES | jq -r '.["@odata.etag"]')
+          curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -H "If-Match: $ETAG" \
+            -d '{
+                  "checklist": {
+                    "95e2": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "ネタ出し", "isChecked": true },
+                    "3f8a": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "記事（台本）", "isChecked": false },
+                    "a2b1": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "サムネイル", "isChecked": false },
+                    "c4d5": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "画像集め", "isChecked": false }
+                  }
+                }' \
+            "https://graph.microsoft.com/v1.0/planner/tasks/$TASK_ID/details"
+
+          echo "🎉 All Done!"
