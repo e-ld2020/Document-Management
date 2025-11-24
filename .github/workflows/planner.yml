@@ -5,7 +5,7 @@ on:
     paths:
       - '**/*.md'
       - '**/*.txt'
-  workflow_dispatch: # 手動実行も許可
+  workflow_dispatch:
 
 jobs:
   create-task:
@@ -42,37 +42,40 @@ jobs:
             exit 1
           fi
 
-          # 3. コミットメッセージ取得
-          TASK_TITLE="${{ github.event.head_commit.message }}"
-          # 手動実行などの場合のフォールバック
-          if [ -z "$TASK_TITLE" ]; then TASK_TITLE="手動実行テスト"; fi
-          echo "Task Title: $TASK_TITLE"
-
-          # 4. バケット一覧を取得（ここがエラーの場所）
+          # 3. バケット一覧を取得（ここがエラーの場所）
           echo "Searching bucket ID for: $TARGET_BUCKET_NAME"
           echo "Target Plan ID: $PLAN_ID"
           
-          # ▼▼▼ エラーの中身を見るための修正 ▼▼▼
+          # ▼▼▼ エラーの中身を見るための診断部分 ▼▼▼
           RESPONSE=$(curl -s -X GET -H "Authorization: Bearer $TOKEN" \
             "https://graph.microsoft.com/v1.0/planner/plans/$PLAN_ID/buckets")
           
           echo "----------------------------------------"
-          echo "【APIからの返答内容】"
+          echo "【Microsoftからの返答】"
           echo "$RESPONSE"
           echo "----------------------------------------"
           # ▲▲▲▲▲▲
 
-          # JSON解析（エラーならここで止まるが、上のログで原因がわかる）
+          # エラーチェック
+          if [[ "$RESPONSE" == *"error"* ]]; then
+             echo "❌ APIエラーが発生しました。"
+             exit 1
+          fi
+
+          # バケットID検索
           BUCKET_ID=$(echo $RESPONSE | jq -r --arg NAME "$TARGET_BUCKET_NAME" '.value[] | select(.name==$NAME) | .id')
 
           if [ -z "$BUCKET_ID" ] || [ "$BUCKET_ID" == "null" ]; then
-            echo "Error: バケットIDが取得できませんでした。"
+            echo "❌ バケットが見つかりません。Plannerの列名を確認してください。"
             exit 1
           fi
-          echo "Found Bucket ID: $BUCKET_ID"
+          echo "✅ Found Bucket ID: $BUCKET_ID"
 
-          # 5. タスクを作成
+          # 4. タスクを作成
           echo "Creating task..."
+          TASK_TITLE="${{ github.event.head_commit.message }}"
+          if [ -z "$TASK_TITLE" ]; then TASK_TITLE="手動テストタスク"; fi
+
           TASK_RES=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
             -d "{
                   \"planId\": \"$PLAN_ID\",
@@ -81,15 +84,16 @@ jobs:
                 }" \
             "https://graph.microsoft.com/v1.0/planner/tasks")
           
-          echo "Task Create Response: $TASK_RES"
           TASK_ID=$(echo $TASK_RES | jq -r '.id')
           
           if [ -z "$TASK_ID" ] || [ "$TASK_ID" == "null" ]; then
-             echo "Error: タスク作成に失敗しました。"
+             echo "❌ タスク作成に失敗しました。"
+             echo "Response: $TASK_RES"
              exit 1
           fi
+          echo "✅ Created Task ID: $TASK_ID"
 
-          # 6. チェックリスト追加
+          # 5. チェックリスト追加
           ETAG=$(echo $TASK_RES | jq -r '.["@odata.etag"]')
           curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
             -H "If-Match: $ETAG" \
