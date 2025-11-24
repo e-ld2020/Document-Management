@@ -17,94 +17,20 @@ jobs:
       - name: チェックアウト
         uses: actions/checkout@v4
 
-      - name: Plannerタスク作成実行
+      - name: 診断実行
         env:
           AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
           AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
           AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
-          # ▼▼▼ ID設定 ▼▼▼
-          PLAN_ID: 'E4IcGEnHOUalieUARPGTcvoAHqmv'
+          PLAN_ID: 'E4IcGEnHOUalieUARPGTcvoAHqmv' # URLから取得したID
           TARGET_BUCKET_NAME: '00010 3分超速報'
         run: |
-          # 1. Azureにログイン
-          echo "Logging into Azure..."
-          az login --service-principal \
-            --username "$AZURE_CLIENT_ID" \
-            --password "$AZURE_CLIENT_SECRET" \
-            --tenant "$AZURE_TENANT_ID" \
-            --allow-no-subscriptions > /dev/null
-
-          # 2. トークン取得
+          # 1. Azureログイン
+          az login --service-principal -u "$AZURE_CLIENT_ID" -p "$AZURE_CLIENT_SECRET" -t "$AZURE_TENANT_ID" --allow-no-subscriptions > /dev/null
           TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
-          
-          if [ -z "$TOKEN" ]; then
-            echo "Error: アクセストークンの取得に失敗しました"
-            exit 1
-          fi
 
-          # 3. バケット一覧を取得（ここがエラーの場所）
-          echo "Searching bucket ID for: $TARGET_BUCKET_NAME"
-          echo "Target Plan ID: $PLAN_ID"
-          
-          # ▼▼▼ エラーの中身を見るための診断部分 ▼▼▼
-          RESPONSE=$(curl -s -X GET -H "Authorization: Bearer $TOKEN" \
-            "https://graph.microsoft.com/v1.0/planner/plans/$PLAN_ID/buckets")
-          
-          echo "----------------------------------------"
-          echo "【Microsoftからの返答】"
-          echo "$RESPONSE"
-          echo "----------------------------------------"
-          # ▲▲▲▲▲▲
-
-          # エラーチェック
-          if [[ "$RESPONSE" == *"error"* ]]; then
-             echo "❌ APIエラーが発生しました。"
-             exit 1
-          fi
-
-          # バケットID検索
-          BUCKET_ID=$(echo $RESPONSE | jq -r --arg NAME "$TARGET_BUCKET_NAME" '.value[] | select(.name==$NAME) | .id')
-
-          if [ -z "$BUCKET_ID" ] || [ "$BUCKET_ID" == "null" ]; then
-            echo "❌ バケットが見つかりません。Plannerの列名を確認してください。"
-            exit 1
-          fi
-          echo "✅ Found Bucket ID: $BUCKET_ID"
-
-          # 4. タスクを作成
-          echo "Creating task..."
-          TASK_TITLE="${{ github.event.head_commit.message }}"
-          if [ -z "$TASK_TITLE" ]; then TASK_TITLE="手動テストタスク"; fi
-
-          TASK_RES=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -d "{
-                  \"planId\": \"$PLAN_ID\",
-                  \"bucketId\": \"$BUCKET_ID\",
-                  \"title\": \"$TASK_TITLE\"
-                }" \
-            "https://graph.microsoft.com/v1.0/planner/tasks")
-          
-          TASK_ID=$(echo $TASK_RES | jq -r '.id')
-          
-          if [ -z "$TASK_ID" ] || [ "$TASK_ID" == "null" ]; then
-             echo "❌ タスク作成に失敗しました。"
-             echo "Response: $TASK_RES"
-             exit 1
-          fi
-          echo "✅ Created Task ID: $TASK_ID"
-
-          # 5. チェックリスト追加
-          ETAG=$(echo $TASK_RES | jq -r '.["@odata.etag"]')
-          curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
-            -H "If-Match: $ETAG" \
-            -d '{
-                  "checklist": {
-                    "95e2": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "ネタ出し", "isChecked": true },
-                    "3f8a": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "記事（台本）", "isChecked": false },
-                    "a2b1": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "サムネイル", "isChecked": false },
-                    "c4d5": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "画像集め", "isChecked": false }
-                  }
-                }' \
-            "https://graph.microsoft.com/v1.0/planner/tasks/$TASK_ID/details"
-
-          echo "Done!"
+          # 2. 診断：バケット一覧取得を試みる（エラー内容をそのまま表示）
+          echo "▼▼▼ Microsoftからの返答ここから ▼▼▼"
+          curl -X GET -H "Authorization: Bearer $TOKEN" \
+            "https://graph.microsoft.com/v1.0/planner/plans/$PLAN_ID/buckets" -v
+          echo "▲▲▲ Microsoftからの返答ここまで ▲▲▲"
