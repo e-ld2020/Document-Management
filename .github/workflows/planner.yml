@@ -3,41 +3,51 @@ name: Planner Task Automation
 on:
   push:
     paths:
-      - '**/*.md'  # mdファイルが追加・更新されたら動く
-      - '**/*.txt' # txtファイルも対象
+      - '**/*.md'
+      - '**/*.txt'
 
 jobs:
   create-task:
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      id-token: write
 
     steps:
       - name: チェックアウト
         uses: actions/checkout@v4
 
-      - name: Azureにログイン
-        uses: azure/login@v1
-        with:
-          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
-          allow-no-subscriptions: true
-
-      - name: Plannerタスク作成スクリプト実行
+      - name: Plannerタスク作成実行
         env:
-          # ▼▼▼ ここにあなたのチームIDとプランIDを入れました ▼▼▼
+          # Secretから値を読み込む
+          AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+          AZURE_CLIENT_SECRET: ${{ secrets.AZURE_CLIENT_SECRET }}
+          AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+          # ▼▼▼ チームID・プランID・バケット名 ▼▼▼
           GROUP_ID: 'fb5d0dcd-f554-4ed2-bc57-5df1dfcf6ea3'
           PLAN_ID: 'E4IcGEnHOUalieUARPGTcvoAHqmv'
-          TARGET_BUCKET_NAME: '00010 3分超速報' # ※Plannerの列名と完全一致させてください
+          TARGET_BUCKET_NAME: '00010 3分超速報'
         run: |
-          # 1. アクセストークンの取得
-          TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
+          # 1. Azureにログイン（JSONを使わない頑丈な方式）
+          echo "Logging into Azure..."
+          az login --service-principal \
+            --username "$AZURE_CLIENT_ID" \
+            --password "$AZURE_CLIENT_SECRET" \
+            --tenant "$AZURE_TENANT_ID" \
+            --allow-no-subscriptions > /dev/null
 
-          # 2. 最新のコミットメッセージをタスク名にする（ファイル名なども取得可能だがまずはシンプルに）
+          # 2. アクセストークンの取得
+          TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
+          
+          if [ -z "$TOKEN" ]; then
+            echo "Error: アクセストークンの取得に失敗しました"
+            exit 1
+          fi
+
+          # 3. 最新のコミットメッセージをタスク名にする
           TASK_TITLE="${{ github.event.head_commit.message }}"
           echo "Task Title: $TASK_TITLE"
 
-          # 3. バケットIDを名前から自動検索（ID直書き不要ロジック）
+          # 4. バケットIDを名前から自動検索
           echo "Searching bucket ID for: $TARGET_BUCKET_NAME"
           BUCKETS_JSON=$(curl -s -X GET -H "Authorization: Bearer $TOKEN" \
             "https://graph.microsoft.com/v1.0/planner/plans/$PLAN_ID/buckets")
@@ -45,12 +55,14 @@ jobs:
           BUCKET_ID=$(echo $BUCKETS_JSON | jq -r --arg NAME "$TARGET_BUCKET_NAME" '.value[] | select(.name==$NAME) | .id')
 
           if [ -z "$BUCKET_ID" ] || [ "$BUCKET_ID" == "null" ]; then
-            echo "Error: バケット '$TARGET_BUCKET_NAME' が見つかりませんでした。Plannerの列名を確認してください。"
+            echo "Error: バケット '$TARGET_BUCKET_NAME' が見つかりませんでした。Plannerの列名が一字一句合っているか確認してください。"
+            echo "取得できたバケット一覧: "
+            echo $BUCKETS_JSON | jq -r '.value[].name'
             exit 1
           fi
           echo "Found Bucket ID: $BUCKET_ID"
 
-          # 4. タスクを作成
+          # 5. タスクを作成
           echo "Creating task..."
           TASK_RES=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
             -d "{
@@ -61,10 +73,15 @@ jobs:
             "https://graph.microsoft.com/v1.0/planner/tasks")
           
           TASK_ID=$(echo $TASK_RES | jq -r '.id')
+          
+          if [ -z "$TASK_ID" ] || [ "$TASK_ID" == "null" ]; then
+             echo "Error: タスク作成に失敗しました。"
+             echo "Response: $TASK_RES"
+             exit 1
+          fi
           echo "Created Task ID: $TASK_ID"
 
-          # 5. チェックリスト（詳細）を追加
-          # Plannerの仕様でETagが必要なため取得して更新
+          # 6. チェックリスト（詳細）を追加
           ETAG=$(echo $TASK_RES | jq -r '.["@odata.etag"]')
           
           echo "Adding checklist..."
@@ -80,4 +97,4 @@ jobs:
                 }' \
             "https://graph.microsoft.com/v1.0/planner/tasks/$TASK_ID/details"
 
-          echo "Done!"
+          echo "Done! タスク作成完了"
