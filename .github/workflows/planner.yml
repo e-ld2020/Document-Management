@@ -1,0 +1,83 @@
+name: Planner Task Automation
+
+on:
+  push:
+    paths:
+      - '**/*.md'  # mdファイルが追加・更新されたら動く
+      - '**/*.txt' # txtファイルも対象
+
+jobs:
+  create-task:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      id-token: write
+
+    steps:
+      - name: チェックアウト
+        uses: actions/checkout@v4
+
+      - name: Azureにログイン
+        uses: azure/login@v1
+        with:
+          creds: '{"clientId":"${{ secrets.AZURE_CLIENT_ID }}","clientSecret":"${{ secrets.AZURE_CLIENT_SECRET }}","subscriptionId":"","tenantId":"${{ secrets.AZURE_TENANT_ID }}"}'
+          allow-no-subscriptions: true
+
+      - name: Plannerタスク作成スクリプト実行
+        env:
+          # ▼▼▼ ここにあなたのチームIDとプランIDを入れました ▼▼▼
+          GROUP_ID: 'fb5d0dcd-f554-4ed2-bc57-5df1dfcf6ea3'
+          PLAN_ID: 'E4IcGEnHOUalieUARPGTcvoAHqmv'
+          TARGET_BUCKET_NAME: '00010 3分超速報' # ※Plannerの列名と完全一致させてください
+        run: |
+          # 1. アクセストークンの取得
+          TOKEN=$(az account get-access-token --resource https://graph.microsoft.com --query accessToken -o tsv)
+
+          # 2. 最新のコミットメッセージをタスク名にする（ファイル名なども取得可能だがまずはシンプルに）
+          TASK_TITLE="${{ github.event.head_commit.message }}"
+          echo "Task Title: $TASK_TITLE"
+
+          # 3. バケットIDを名前から自動検索（ID直書き不要ロジック）
+          echo "Searching bucket ID for: $TARGET_BUCKET_NAME"
+          BUCKETS_JSON=$(curl -s -X GET -H "Authorization: Bearer $TOKEN" \
+            "https://graph.microsoft.com/v1.0/planner/plans/$PLAN_ID/buckets")
+          
+          BUCKET_ID=$(echo $BUCKETS_JSON | jq -r --arg NAME "$TARGET_BUCKET_NAME" '.value[] | select(.name==$NAME) | .id')
+
+          if [ -z "$BUCKET_ID" ] || [ "$BUCKET_ID" == "null" ]; then
+            echo "Error: バケット '$TARGET_BUCKET_NAME' が見つかりませんでした。Plannerの列名を確認してください。"
+            exit 1
+          fi
+          echo "Found Bucket ID: $BUCKET_ID"
+
+          # 4. タスクを作成
+          echo "Creating task..."
+          TASK_RES=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -d "{
+                  \"planId\": \"$PLAN_ID\",
+                  \"bucketId\": \"$BUCKET_ID\",
+                  \"title\": \"$TASK_TITLE\"
+                }" \
+            "https://graph.microsoft.com/v1.0/planner/tasks")
+          
+          TASK_ID=$(echo $TASK_RES | jq -r '.id')
+          echo "Created Task ID: $TASK_ID"
+
+          # 5. チェックリスト（詳細）を追加
+          # Plannerの仕様でETagが必要なため取得して更新
+          ETAG=$(echo $TASK_RES | jq -r '.["@odata.etag"]')
+          
+          echo "Adding checklist..."
+          curl -s -X PATCH -H "Authorization: Bearer $TOKEN" -H "Content-Type: application/json" \
+            -H "If-Match: $ETAG" \
+            -d '{
+                  "checklist": {
+                    "95e2": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "ネタ出し", "isChecked": true },
+                    "3f8a": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "記事（台本）", "isChecked": false },
+                    "a2b1": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "サムネイル", "isChecked": false },
+                    "c4d5": { "@odata.type": "microsoft.graph.plannerChecklistItem", "title": "画像集め", "isChecked": false }
+                  }
+                }' \
+            "https://graph.microsoft.com/v1.0/planner/tasks/$TASK_ID/details"
+
+          echo "Done!"
